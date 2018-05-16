@@ -1,0 +1,217 @@
+#### MODELLING ####
+#This exercise explores methods for using modeling to shape our inquiry of data. It reaches back to previous
+#odules that taught us about data manipulation, data visualization and functions.
+
+#We're going to work with the Lyme disease/Climate/Demography data set that you previously assembled. =  ld_prism_pops.csv
+
+
+#### LOAD ld_prism_pop.csv data ####
+#Task 1: Using either read_csv (note: the underscore version, not read.csv) or load, import the data set
+#you put together in the module on 'Data wrangling in R'.
+
+dir.create("Modelling") #creates a new folder in My Docs
+setwd('~/./Modelling') #changes file save location
+
+#Now iload libraries that will be needed (I didn't have to install them as they have already been used today, if starting a new session, these packages would need to be installed then loaded):
+library(tidyverse)
+library(magrittr)
+library(GGally)
+
+#Need to setwd to where csv file of interest is located, then i will return setwd back to Modelling (where I want to save all of my files from this session)
+setwd('~/./Wrangling')
+model <- read_csv('ld_prism_pop.csv')
+setwd('~/./Modelling')
+
+model #view tibble
+
+
+#### OBTAIN SUMMARY PLOT OF DATA ####
+#Task 2: Use the ggpairs function to obtain a 4x4 summary plot of precipitation (prcp), average temperature
+#(avtemp), population size (size), number of Lyme disease cases (cases). Note: it may take several seconds for
+#this plot to appear as there are nearly 50,000 data points.
+
+#ggpairs(ld_prism_pop,columns=c("prcp","avtemp","size","cases"))
+ggpairs(model,columns=c("prcp","avtemp","size","cases"))
+model
+
+#You'll note from the density plots on the diagonals, that the data columns 'size' and 'cases' are very clumped,
+#with many low values and a few large values. These may be easier to visualize by transforming to a logarithmic
+#scale.
+
+#### ADD ADDITIONAL COLUMNS FOR LOG10SIZE AND LOFG10(CASES+1) ####
+#Task 3: Create two new columns for log10(size) and log10(cases+1) and substitute these for the original size
+#and cases supplied when you recreate the ggpairs plot. Why do we add 1 to the number of cases?
+
+#ld.16y %<>% mutate(log10cases=log10(1+all.cases)) #transforms data into log10 scale - EXAMPLE FROM LAST SESSION OF HOW TO LOG10
+model %<>% mutate(log10size=log10(size)) # %<>% = calculates info, then appends it to the tabel
+model
+model %<>% mutate(log10cases=log10(cases+1))
+model
+ggpairs(model,columns=c("prcp","avtemp","log10size","log10cases"))
+
+#### A SIMPLE LIMEAR MODEL ####
+
+#plot simple graph of precip vs av temperature
+
+#Task 4: Using set.seed(222) for reproducibility, create a new data frame to be a random sample (n=100
+#rows) of the full data frame and plot precipitation (x-axis) vs average temperature (y-axis). 
+#Task 5: Add the best straight line to the plot using geom_smooth.
+
+set.seed(222) #Set the seed of R's random number generator, which is useful for creating simulations or random objects that can be reproduced.
+#The random numbers are the same, and they would continue to be the same no matter how far out in the sequence we went.
+#Tip. Use the set.seed function when running simulations to ensure all results, figures, etc are reproducible.
+
+small<-model %>% sample_n(100) #this is a subsample of 100 random points in the model tibble (renamed to model by me for this session)
+small #look at tibble now called small
+
+library(ggplot2)
+ggplot(data=small)+geom_point(aes(prcp,avtemp))+ #plots points #plots precip vs av temp
+  geom_smooth(aes(prcp,avtemp),method="lm") #addsline
+
+ggplotModelling <- ggplot(data=small)+geom_point(aes(prcp,avtemp))+ #plots points #this adds the ggplot to a discrete file
+  geom_smooth(aes(prcp,avtemp),method="lm") #addsline
+
+#Task 6: Create a linear model (lm) object with a call like myModel <- lm(y ~ x, data = myData) for the
+#subsetted data, where y=avtemp and x=prcp. In addition, view the summary with a call along the lines of
+#summary(myModel)
+
+model1<-lm(formula = avtemp ~ prcp, data = small)
+summary(model1)
+
+summary(model1)$coefficients[2,1]
+summary(model1)$coefficients[2,4]
+
+#Task 7: What is the slope of the line you plotted in Task 5, and is the slope significantly different from 0
+#(p<0.05)?
+#            Estimate Std. Error t value Pr(>|t|)    
+#(Intercept)  6.02541    1.36916   4.401 2.75e-05 ***
+#prcp         0.00672    0.00136   4.942 3.19e-06 ***
+
+#### THE MODELR PROJECT ####
+
+#Hint: you should pass the main (large) data frame to a group_by call and then a summarize call, then
+#you can pass this new, unnamed data frame to ggplot using ggplot(.) and specify the aesthetics in a
+#geom_point call.
+#We'll start with an illustrative exercise. We know the size of the US population has been growing.
+
+model %>% group_by(year) %>% summarize(total=sum(size)) %>%
+  ggplot(.)+geom_point(aes(x=year,y=total))
+
+#### Grouped data frames versus nested data frames ####
+#Task 9: Create a data frame called "by_state" from the main data frame, that groups by state, and inspect it
+
+by_state <- model %<>% group_by(state)
+by_state
+
+#Task 10: Next, update this new data frame so that it is nested (simply pass it to nest). Again, inspect the
+#data frame by typing its name in the console so see how things changed.
+
+by_state %<>% nest
+by_state
+
+#You should see that by_state has a list-column called "data". List elements are accessed with [[]]. For
+#example to see the data for Georgia, the 10th state in the alphabetized data frame, we would type
+#by_state$data[[10]] in the console.
+#Task 11: Display the Georgia data in the console window.
+#state                data                
+#<chr>                <list>              
+#  1 Alabama              <tibble [1,005 x 9]>
+#  2 Arizona              <tibble [225 x 9]>  
+#  3 Arkansas             <tibble [1,125 x 9]>
+#  4 California           <tibble [870 x 9]>  
+#  5 Colorado             <tibble [960 x 9]>  
+# 6 Connecticut          <tibble [120 x 9]>  
+#  7 Delaware             <tibble [45 x 9]>   
+#  8 District of Columbia <tibble [15 x 9]>   
+#  9 Florida              <tibble [1,005 x 9]>
+#  10 Georgia              <tibble [2,385 x 9]>
+
+by_state$data[[10]] #this will dsiplay GA info
+
+#Task 12: Write a function that takes a data frame as its argument and returns a linear model object that
+#predicts size by year.
+
+linGrowth_model <- function(df){ #lm generared that predicts size of population at a particular year
+  lm(size ~ year, data = df)
+}
+
+models <- purrr::map(by_state$data, linGrowth_model) #map is a functionality of the purrr library
+#The map functions transform their input by applying a function to each element and returning a
+#vector the same length as the input.
+
+#Task 13: Add a column to the by_state dataframe, where each row (state) has its own model object.
+by_state
+
+#rm(list=ls()) used to detach maps, as it was preventing running the line below
+
+by_state %<>% mutate(model = map(data, linGrowth_model))
+
+#Continuing in this format, we can, for example, store the residuals for each model (the discrepancy between
+#the model prediction and the actual data). For this we will use the associated function to purrr:map, called
+#map2, which takes 2 arguments and creates new data from them (in this case residuals).
+library(modelr)
+by_state %<>% mutate(resids = map2(data, model, add_residuals))
+
+#Task 14: Run these commands and inspect "resids". What is the structure of "resids"?
+by_state #resids = <list> <tibble
+
+#Task 15: Write a function that accepts an object of the type in the resids list, and returns a sum of the
+#absolute values, i.e. ignoring sign: abs(3)+abs(-2)=5. Use the function to add a column called totalResid
+#to by_state that provides the total size of residuals summed over counties and years.
+
+sum_resids <- function(x){
+  sum(abs(x$resid))
+}
+
+by_state %<>% mutate(totalResid = map(resids,sum_resids))
+by_state
+
+#Task 16: Write a function that accepts a linear model and returns the slope (model M has slope
+#M$coefficients[2]) and then use this function to create a new column called slope in the by_state data
+#frame, that is the slope for each state.
+
+get_slope <- function(model){
+  model$coefficients[2]
+}
+
+by_state %<>% mutate(slope = purrr::map(model, get_slope))
+
+slopes <- unnest(by_state, slope)
+totalResids <- unnest(by_state, totalResid)
+
+#Now we can pass these new data frames to ggplot to see how the growth rate manifested in different states.
+#Task 17: Plot the growth rate (slope value) for all states.
+
+slopes %>% ggplot(aes(state,slope))+geom_point()+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+#Task 18: Plot the total resisduals for all states.
+
+totalResids %>% ggplot(aes(state,totalResid))+geom_point()+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+#Task 19: Repeat Tasks 9 and 10 using a different data frame name, by_state2.
+  #Task 9: Create a data frame called "by_state" from the main data frame, that groups by state, and inspect it
+  #Task 10: Next, update this new data frame so that it is nested (simply pass it to nest). Again, inspect the
+  #data frame by typing its name in the console so see how things changed.
+
+by_state2 <- model %<>% group_by(state)
+by_state2
+
+by_state2 %<>% nest
+by_state2
+
+#Task 20: Write a function that accepts an element of the by_state2$data list-column and returns the
+#spearman correlation coefficient between Lyme disease cases and precipitation
+
+?cor.test
+
+runCor <- function(df){ #runs the corrrelation function
+  suppressWarnings(cor.test(df$cases,df$prcp,method="spearman")$estimate)
+}
+by_state2 %<>% mutate(spCor = purrr::map(data, runCor))
+spCors <- unnest(by_state2,spCor)
+spCors %<>% arrange(desc(spCor))
+spCors$state <- factor(spCors$state, levels=unique(spCors$state))
+ggplot(spCors,aes(state,spCor))+geom_point()+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
