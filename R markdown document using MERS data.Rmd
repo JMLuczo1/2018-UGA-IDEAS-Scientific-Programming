@@ -48,7 +48,6 @@ ggplot3 <- ggplot(data=mers) +
   geom_bar(mapping=aes(x=epi.day, fill=country)) +
   ylim (0, 15) +
   labs(x="Epidemic day", y="Case count", title='Global count of MERS cases by date of symptom onset', caption="Data from: https://github.com/rambaut/MERS-Cases/blob/gh-pages/data/cases.csv")
-ggplotly(p=ggplot3)
 
 #CHANGED COLOUR PALETTE
 require(RColorBrewer)
