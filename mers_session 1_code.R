@@ -43,7 +43,7 @@ mers$infectious.period <- mers$hospitalized2-mers$onset2
 #CHECK WHAT CLASS OF DATA THE INFECTIOUS PERIOD IS CLASSIFIED AS
 class(mers$infectious.period)
 
-result = "difftime", which means time intervals/differences
+#result = "difftime", which means time intervals/differences
 
 #NOW, SPECIFY THAT THE UNITS ARE DAYS. THIS COMMAND ALSO CHANGES A FACTOR INTO A NUMBERIC (as.numeric)
 mers$infectious.period <- as.numeric(mers$infectious.period, units = "days")
@@ -123,6 +123,3 @@ ggplot(data=subset(mers, gender %in% c('M', 'F') & country %in% c('KSA', 'Oman',
 #CALCULATE CASE FATALITY IN MERS DATASET
 #IFELSE CAN BE USED TO CONSTRUCT A VECTOR WITH TRUE/FALSE WHEN PERIOD < 0
 #calculated infectious period in the case where it is positive and zero otherwise
-
-class(outcome)
-

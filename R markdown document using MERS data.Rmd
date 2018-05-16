@@ -1,0 +1,167 @@
+---
+title: "Session 1 PDF"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r mers, data}
+#dir.create("mers")
+#setwd('~/./mers')
+mers <- read.csv('cases.csv')
+#INSTALL PACKAGES FIRST, THEN LOAD LIBRARY
+
+mers$hospitalized[890] <- c('2015-02-20')
+head(mers)
+mers <- mers[-471,]
+#install.packages("lubridate" and "ggplot2)
+library(lubridate)
+library(ggplot2)
+library(plotly)
+
+mers$onset2 <- ymd(mers$onset)
+mers$hospitalized2 <- ymd(mers$hospitalized)
+class(mers$onset2)
+day0 <- min(na.omit(mers$onset2))
+mers$epi.day <- as.numeric(mers$onset2 - day0)
+
+ggplot1 <- ggplot(data=mers) + #turned the graph into an opject to make it easier to include all plots in report
+  geom_bar(mapping=aes(x=epi.day)) +
+  labs(x="Epidemic day", y="Case count", title='Global count of MERS cases by date of symptom onset', caption="Data from: https://github.com/rambaut/MERS-Cases/blob/gh-pages/data/cases.csv")
+ggplotly(p=ggplot1) 
+
+ggplot2 <- ggplot(data=mers) +
+  geom_bar(mapping=aes(x=epi.day, fill=country)) +
+  labs(x="Epidemic day", y="Case count", title='Global count of MERS cases by date of symptom onset', caption="Data from: https://github.com/rambaut/MERS-Cases/blob/gh-pages/data/cases.csv")
+ggplotly(p=ggplot2)
+
+#CHANGED Y AXIS MAX TO 15
+ggplot3 <- ggplot(data=mers) +
+  geom_bar(mapping=aes(x=epi.day, fill=country)) +
+  ylim (0, 15) +
+  labs(x="Epidemic day", y="Case count", title='Global count of MERS cases by date of symptom onset', caption="Data from: https://github.com/rambaut/MERS-Cases/blob/gh-pages/data/cases.csv")
+ggplotly(p=ggplot3)
+
+#CHANGED COLOUR PALETTE
+require(RColorBrewer)
+ggplot4 <- ggplot(data=mers) +
+  geom_bar(mapping=aes(x=epi.day, fill=country)) +
+  labs(x="Epidemic day", y="Case count", title='Global count of MERS cases by date of symptom onset', caption="Data from: https://github.com/rambaut/MERS-Cases/blob/gh-pages/data/cases.csv")
+ggplot4 + scale_fill_brewer(palette="PRGn")
+ggplotly(p=ggplot4)
+
+#CALCULATE THE ACTUAL  INFECTIOUS PERIOD (RAW DATA)
+mers$infectious.period <- mers$hospitalized2-mers$onset2
+
+#CHECK WHAT CLASS OF DATA THE INFECTIOUS PERIOD IS CLASSIFIED AS
+class(mers$infectious.period)
+
+#result = "difftime", which means time intervals/differences
+
+#NOW, SPECIFY THAT THE UNITS ARE DAYS. THIS COMMAND ALSO CHANGES A FACTOR INTO A NUMBERIC (as.numeric)
+mers$infectious.period <- as.numeric(mers$infectious.period, units = "days")
+
+ggplot5 <- ggplot(data=mers) +
+  geom_histogram(aes(x=infectious.period)) +
+  labs(x="Infectious period", y="Frequency", title="Distribution of calculated MERS infectious period", caption = "Data from: https://github.com/rambaut/MERS-Cases/blob/gh-pages/data/cases.csv")
+ggplotly(p=ggplot5)
+ 
+#CHANGE X AXIS RANGE:
+ggplot6 <- ggplot(data=mers) +
+  geom_histogram(aes(x=infectious.period)) +
+  xlim (-100,150) +
+  labs(x="Infectious period", y="Frequency", title="Distribution of calculated MERS infectious period", caption = "Data from: https://github.com/rambaut/MERS-Cases/blob/gh-pages/data/cases.csv")
+ggplotly(p=ggplot6)
+
+#IFELSE CAN BE USED TO CONSTRUCT A VECTOR WITH TRUE/FALSE WHEN PERIOD < 0
+#calculated infectious period in the case where it is positive and zero otherwise
+mers$infectious.period2 <-ifelse(mers$infectious.period<0,0,mers$infectious.period)
+
+#THIS CODE WILL EXCLUDE VALUES <0
+ggplot7 <- ggplot(data=mers) +
+  geom_histogram(aes(x=infectious.period2)) +
+  labs(x='Infectious period', y='Frequency', title='Distribution of calculated MERS infectious period (positive values only)', caption='Data')
+ggplotly(p=ggplot7)
+
+#CHANGE PLOT TYPE TO DENSITY PLOT
+ggplot8 <- ggplot(data=mers) +
+  geom_density(aes(x=infectious.period2)) +
+  labs(x='Infectious period', y='Frequency', title='Probability density for MERS infectious period (positive values only)', caption='Data from: https://github.com/rambaut/MERS???Cases/blob/gh???pages/data/cases.csv')
+ggplotly(p=ggplot8)
+
+#RATHER THAN DENSITY PLOT, CAN GRAPH THE PLOT AREA (SIMPLY, BOXES ARE FILLED IN)
+#THE DATA NEEDS TO BE BINNED TO PLOT (DISCREET INTERVALS)
+ggplot9 <- ggplot(data=mers) +
+  geom_area(stat='bin', mapping=aes(x=infectious.period2)) +
+  labs(x='Infectious period', y='Frequency', title='Area plot for MERS infectious period (positive values only)', caption='Data from: https://github.com/rambaut/MERS???Cases/blob/gh???pages/data/cases.csv')
+ggplotly(p=ggplot9)
+
+#NOW CHANGE TO DOT PLOT
+ggplot10 <- ggplot(data=mers) +
+  geom_dotplot(stat='bin', mapping=aes(x=infectious.period2)) +
+  labs(x='Infectious period', y='Frequency', title='Area plot for MERS infectious period (positive values only)', caption='Data from: https://github.com/rambaut/MERS???Cases/blob/gh???pages/data/cases.csv')
+ggplotly(p=ggplot10)
+
+#PLOT AREA, BUT RATHER THEN INFECTIOUS PERIOD AND FREQUENCY, PLOTTING INFECTIOUS PERIOD AND
+#THE DATA NEEDS TO BE BINNED TO PLOT (DISCREET INTERVALS)
+#I HAVE ALSO CHANGED THE Y AXIS MAX TO 40
+#THIS CODE BUILDS UPON THE ABOVE, THOUGH SMOOTHING THE LINE
+ggplot11 <- ggplot(data=mers) +
+  geom_smooth(aes(x=epi.day, y=infectious.period2), method="loess") +
+  labs(x='Day', y='Infectious Period', title='Probability density for MERS infectious period (positive values only)', caption='Data from: https://github.com/rambaut/MERS???Cases/blob/gh???pages/data/cases.csv')
+ggplotly(p=ggplot11)
+
+#PLOT AREA, BUT RATHER THEN INFECTIOUS PERIOD AND FREQUENCY, PLOTTING INFECTIOUS PERIOD AND
+#THE DATA NEEDS TO BE BINNED TO PLOT (DISCREET INTERVALS)
+#I HAVE ALSO CHANGED THE Y AXIS MAX TO 40
+ggplot12 <- ggplot(data=mers) +
+  geom_point(aes(x=epi.day, y=infectious.period2, colour=country)) +
+  ylim(0,40) +
+  labs(x='Day', y='Infectious Period', title='Probability density for MERS infectious period (positive values only)', caption='Data from: https://github.com/rambaut/MERS???Cases/blob/gh???pages/data/cases.csv')
+ggplotly(p=ggplot12)
+
+#FACETING THE ABOVE GRAPH
+ggplot13 <- ggplot(data=mers, mapping=aes(x=epi.day, y=infectious.period2)) +
+  geom_point(mapping = aes(colour=country)) +
+  facet_wrap(~ country) +
+  scale_y_continuous(limits = c(0, 50)) +
+  labs(x='Epidemic day', y='Infectious Period', title='MERS infectious period (positive values only) over time', caption='Data from: https://github.com/rambaut/MERS???Cases/blob/gh???pages/data/cases.csv')
+ggplotly(p=ggplot13)
+
+#ONLY GRAPH CERTAIN COUNTRIES (FACETING OF THE GRAPHS ALSO)
+ggplot14 <- ggplot(data=subset(mers, gender %in% c('M', 'F') & country %in% c('KSA', 'Oman', 'Iran', 'Jordan', 'Qatar', 'South Korea', 'UAE'))) +
+  geom_point(mapping = aes(x=epi.day, y=infectious.period2, colour=country)) +
+  facet_grid(gender ~ country) +
+  scale_y_continuous(limits = c(0, 50)) +
+  labs(x='Epidemic day', y='Infectious Period', title='MERS infectious period by gender and country', caption='Data from: https://github.com/rambaut/MERS???Cases/blob/gh???pages/data/cases.csv')
+ggplotly(p=ggplot14)
+  
+#DATA EXPLORATION
+ggplot15 <- ggplot(data=subset(mers, gender %in% c('M', 'F') & country %in% c('KSA', 'Oman', 'Iran', 'Jordan', 'Qatar', 'South Korea', 'UAE'))) +
+  geom_point(mapping = aes(x=epi.day, y=infectious.period2, colour=country)) +
+  facet_grid(gender ~ country) +
+  scale_y_continuous(limits = c(0, 50)) +
+  labs(x='Epidemic day', y='Infectious Period', title='MERS infectious period by gender and country', caption='Data from: https://github.com/rambaut/MERS???Cases/blob/gh???pages/data/cases.csv')
+ggplotly(p=ggplot15)
+
+#CALCULATE CASE FATALITY IN MERS DATASET
+#IFELSE CAN BE USED TO CONSTRUCT A VECTOR WITH TRUE/FALSE WHEN PERIOD < 0
+#calculated infectious period in the case where it is positive and zero otherwise
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
